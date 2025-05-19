@@ -1,10 +1,17 @@
-from flask import Flask, jsonify, render_template_string
+from flask import Flask, jsonify, render_template_string, request
 import json
 from pathlib import Path
 
 app = Flask(__name__)
 
 CONFIGS_DIR = Path(__file__).parent / "configs"
+EXCEL_JSON_PATH = CONFIGS_DIR / "beta_excel.json"
+
+def load_excel_json():
+    if not EXCEL_JSON_PATH.exists():
+        return None
+    with open(EXCEL_JSON_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 def load_json(file_name):
     file_path = CONFIGS_DIR / file_name
@@ -58,6 +65,37 @@ def index():
       <li><a href="/beta">View Beta Excel JSON</a></li>
     </ul>
     '''
+
+@app.route("/search_excel", methods=["POST"])
+def search_excel():
+    data = request.get_json()
+    query = data.get("query", "").strip().lower()
+    if not query:
+        return jsonify({"error": "Query string is required"}), 400
+
+    context_window = int(data.get("context", 2))  # how many rows before & after
+    result = []
+    excel_data = load_excel_json()
+    if not excel_data:
+        return jsonify({"error": "Excel JSON not found"}), 404
+
+    for sheet in excel_data.get("sheets", []):
+        rows = sheet.get("data", [])
+        for r_idx, row in enumerate(rows):
+            for c_idx, cell in enumerate(row):
+                if isinstance(cell, str) and query in cell.lower():
+                    match_info = {
+                        "sheet_name": sheet["sheet_name"],
+                        "row": r_idx,
+                        "column": c_idx,
+                        "cell_value": cell,
+                        "path": f"{sheet['sheet_name']}!{chr(65 + c_idx)}{r_idx + 1}",
+                        "context": rows[max(0, r_idx - context_window): r_idx + context_window + 1]
+                    }
+                    result.append(match_info)
+
+    return jsonify({"matches": result, "query": query})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
