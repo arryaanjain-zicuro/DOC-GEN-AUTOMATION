@@ -1,16 +1,22 @@
-from alpha_parser.word_parser import parse_term_sheet
-from generator.excel_generator import generate_excel_from_mapping
+import openpyxl
+from utils.beta_excel_json_struct import read_excel_json
+def generate_xlsx_from_json(sheets, output_path):
+    wb = openpyxl.Workbook()
+    # Remove the default sheet
+    wb.remove(wb.active)
+    for sheet in sheets:
+        ws = wb.create_sheet(title=sheet['sheet_name'])
+        for row in sheet['data']:
+            ws.append(row)
+    wb.save(output_path)
 
-def run_static_flow():
-    alpha_path = "Term Sheet - Series 129.docx"
-    mapping_path = "configs/mis_mappings.json"
-    template_path = "templates/MIS_template.xlsx"
-    output_path = "output/generated_MIS.xlsx"
+def run_json_excel_flow():
+    json_path = "configs/beta_excel.json"
+    output_path = "output/generated_from_json.xlsx"
 
-    # Step 1: Extract fields
-    alpha_data = parse_term_sheet(alpha_path)
+    sheets = read_excel_json(json_path)
+    generate_xlsx_from_json(sheets, output_path)
+    print("[✔] Excel generated from JSON:", output_path)
 
-    # Step 2: Generate output Excel
-    generate_excel_from_mapping(alpha_data, mapping_path, template_path, output_path)
-
-    print("[✔] Beta document generated:", output_path)
+if __name__ == "__main__":
+    run_json_excel_flow()
