@@ -18,18 +18,8 @@ def apply_mapping_to_json(sheets):
             styles = sheet.setdefault("styles", [])
             num_cols = len(data[0]) if data else 0
 
-            # Sr. No. (auto-increment)
-            last_sr_no = 0
-            for i in range(1, last_row_idx + 1):
-                try:
-                    val = int(str(data[i][0]).strip())
-                    if val > last_sr_no:
-                        last_sr_no = val
-                except Exception:
-                    continue
-            data[target_row_idx][0] = str(last_sr_no + 1)
-
-            last_row_idx = 0 #re-initialized such that it now finds the value of y
+            #to add last_sr_no + 1 val (value for new serial number), we first need last_row_idx, which we get after checking y which is the place of append
+           
             """
             in our logic, y is the row index where we want to insert the new data.
             We are doing so because values after y in sheets are performing totalling
@@ -46,6 +36,7 @@ def apply_mapping_to_json(sheets):
                 data.insert(y, [""] * num_cols)
                 styles.insert(y, [{} for _ in range(num_cols)])
                 target_row_idx = y
+                last_row_idx = y
             else:
                 # Fallback: append at the end as before
                 last_row_idx = len(data) - 1
@@ -58,7 +49,19 @@ def apply_mapping_to_json(sheets):
                 while len(styles) <= target_row_idx:
                     styles.append([{} for _ in range(num_cols)])
 
+            # Sr. No. (auto-increment)
+            last_sr_no = 0
+            for i in range(1, last_row_idx + 1):
+                try:
+                    val = int(str(data[i][0]).strip())
+                    if val > last_sr_no:
+                        last_sr_no = val
+                except Exception:
+                    continue
 
+            #serial number:
+            data[target_row_idx][0] = str(last_sr_no + 1)
+            
             # date_found
             data[target_row_idx][4] = mapping.get("date_found", "")
 
