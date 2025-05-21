@@ -3,6 +3,7 @@
 # Don’t track input / output data
 templates/
 configs/
+output/
 
 # Local virtual-envs
 venv/
