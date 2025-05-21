@@ -9,6 +9,7 @@ def normalize_sheet_name(name):
     return name.replace(" ", "").lower()
 
 def apply_mapping_to_json(sheets):
+    last_row_idx = 0
     mapping = derive_mapping()
     mapping_sheet = normalize_sheet_name(mapping["sheet_name"])
     for sheet in sheets:
@@ -16,21 +17,6 @@ def apply_mapping_to_json(sheets):
             data = sheet["data"]
             styles = sheet.setdefault("styles", [])
             num_cols = len(data[0]) if data else 0
-
-            # Find the last row that has at least one non-empty cell
-            last_row_idx = len(data) - 1
-            while last_row_idx >= 0 and all((str(cell).strip() == "" for cell in data[last_row_idx])):
-                last_row_idx -= 1
-
-            # The next empty row (append if needed)
-            target_row_idx = last_row_idx + 1
-
-            # Ensure the row and styles exist
-            if target_row_idx >= len(data):
-                data.append([""] * num_cols)
-                styles.append([{} for _ in range(num_cols)])
-            while len(styles) <= target_row_idx:
-                styles.append([{} for _ in range(num_cols)])
 
             # Sr. No. (auto-increment)
             last_sr_no = 0
@@ -42,6 +28,36 @@ def apply_mapping_to_json(sheets):
                 except Exception:
                     continue
             data[target_row_idx][0] = str(last_sr_no + 1)
+
+            last_row_idx = 0 #re-initialized such that it now finds the value of y
+            """
+            in our logic, y is the row index where we want to insert the new data.
+            We are doing so because values after y in sheets are performing totalling
+            """
+            # Find the row index y where data[y][3] == "C/F 2023-24"
+            y = None
+            for idx, row in enumerate(data):
+                if len(row) > 3 and str(row[3]).strip() == "C/F 2023-24":
+                    y = idx
+                    break
+
+            if y is not None:
+                # Insert a blank row at y
+                data.insert(y, [""] * num_cols)
+                styles.insert(y, [{} for _ in range(num_cols)])
+                target_row_idx = y
+            else:
+                # Fallback: append at the end as before
+                last_row_idx = len(data) - 1
+                while last_row_idx >= 0 and all((str(cell).strip() == "" for cell in data[last_row_idx])):
+                    last_row_idx -= 1
+                target_row_idx = last_row_idx + 1
+                if target_row_idx >= len(data):
+                    data.append([""] * num_cols)
+                    styles.append([{} for _ in range(num_cols)])
+                while len(styles) <= target_row_idx:
+                    styles.append([{} for _ in range(num_cols)])
+
 
             # date_found
             data[target_row_idx][4] = mapping.get("date_found", "")
