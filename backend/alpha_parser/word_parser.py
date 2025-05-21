@@ -1,5 +1,6 @@
 from docx import Document
 
+#not in use rn
 def parse_term_sheet(path: str) -> dict:
     doc = Document(path)
     data = {}
