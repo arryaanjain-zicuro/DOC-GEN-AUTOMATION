@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from docx_to_json import docx_to_json
-from excel_to_json import excel_to_json
+from excel_to_json import excel_to_json_file
 
 def main():
     root_dir = Path(__file__).parent.parent
@@ -26,7 +26,7 @@ def main():
     input_excel = templates_dir / "MIS.xlsx"
     if input_excel.exists():
         print(f"Processing Excel: {input_excel}")
-        excel_json = excel_to_json(input_excel)
+        excel_json = excel_to_json_file(input_excel)
         with open(configs_dir / "beta_excel.json", "w", encoding="utf-8") as f:
             json.dump(excel_json, f, indent=2, ensure_ascii=False)
         print("Saved: configs/beta_excel.json")
