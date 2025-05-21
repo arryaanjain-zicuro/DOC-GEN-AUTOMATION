@@ -2,6 +2,87 @@ import openpyxl
 from utils.beta_excel_json_struct import read_excel_json
 from openpyxl.styles import PatternFill, Font
 
+import json
+from utils.mapping_loader import derive_mapping
+
+def normalize_sheet_name(name):
+    return name.replace(" ", "").lower()
+
+def apply_mapping_to_json(sheets):
+    mapping = derive_mapping()
+    mapping_sheet = normalize_sheet_name(mapping["sheet_name"])
+    for sheet in sheets:
+        if normalize_sheet_name(sheet["sheet_name"]) == mapping_sheet:
+            data = sheet["data"]
+            styles = sheet.setdefault("styles", [])
+            num_cols = len(data[0]) if data else 0
+
+            # Find the last row that has at least one non-empty cell
+            last_row_idx = len(data) - 1
+            while last_row_idx >= 0 and all((str(cell).strip() == "" for cell in data[last_row_idx])):
+                last_row_idx -= 1
+
+            # The next empty row (append if needed)
+            target_row_idx = last_row_idx + 1
+
+            # Ensure the row and styles exist
+            if target_row_idx >= len(data):
+                data.append([""] * num_cols)
+                styles.append([{} for _ in range(num_cols)])
+            while len(styles) <= target_row_idx:
+                styles.append([{} for _ in range(num_cols)])
+
+            # Sr. No. (auto-increment)
+            last_sr_no = 0
+            for i in range(1, last_row_idx + 1):
+                try:
+                    val = int(str(data[i][0]).strip())
+                    if val > last_sr_no:
+                        last_sr_no = val
+                except Exception:
+                    continue
+            data[target_row_idx][0] = str(last_sr_no + 1)
+
+            # date_found
+            data[target_row_idx][4] = mapping.get("date_found", "")
+
+            # Listed/Unlisted and Rated/Unrated
+            keywords = mapping.get("qualified_keywords", [])
+            listed = next((k for k in keywords if k.lower() in ["listed", "unlisted"]), "")
+            rated = next((k for k in keywords if k.lower() in ["rated", "unrated"]), "")
+            data[target_row_idx][6] = f"{listed}/{rated}" if listed and rated else listed or rated
+
+            # details
+            details = mapping.get("details", {})
+            data[target_row_idx][9] = str(details.get("units", ""))
+            data[target_row_idx][10] = str(details.get("face_value", ""))
+            data[target_row_idx][11] = str(details.get("issue_price", ""))
+            data[target_row_idx][12] = str(details.get("nominal_value", ""))
+
+                        # series
+            data[target_row_idx][3] = mapping.get("series", "")
+
+            # underlying_index
+            data[target_row_idx][16] = mapping.get("underlying_value", "")
+
+            # date_of_maturity
+            data[target_row_idx][19] = mapping.get("date_of_maturity", "")
+
+            # Highlight all these cells in green
+            for col in [0, 3, 4, 6, 9, 10, 11, 12, 16, 19]:
+                styles[target_row_idx][col] = {"fill": "FF00FF00", "font_color": "FF000000"}
+
+            break  # Only apply to the first matching sheet
+# In your run_json_excel_flow, call this before generate_xlsx_from_json:
+def run_json_excel_flow():
+    json_path = "configs/beta_excel.json"
+    output_path = "output/generated_from_json.xlsx"
+
+    sheets = read_excel_json(json_path)
+    apply_mapping_to_json(sheets)  # <-- Add this line
+    generate_xlsx_from_json(sheets, output_path)
+    print("[✔] Excel generated from JSON:", output_path)
+
 def apply_style(cell, style):
     fill = style.get("fill")
     if fill:
@@ -55,6 +136,7 @@ def run_json_excel_flow():
     output_path = "output/generated_from_json.xlsx"
 
     sheets = read_excel_json(json_path)
+    apply_mapping_to_json(sheets)  # <-- Add this line
     generate_xlsx_from_json(sheets, output_path)
     print("[✔] Excel generated from JSON:", output_path)
 

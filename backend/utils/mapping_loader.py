@@ -4,8 +4,8 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from extract_sec_from_alpha import extract_security_info_from_alpha_json, extract_series_from_product_code, extract_issue_size_details
-from extract_sec_from_alpha import extract_underlying, extract_date_of_maturity
+from utils.extract_sec_from_alpha import extract_security_info_from_alpha_json, extract_series_from_product_code, extract_issue_size_details
+from utils.extract_sec_from_alpha import extract_underlying, extract_date_of_maturity
 SECURITY_KEYWORDS = {
     "secured": re.compile(r"\bsecured\b", re.I),
     "unsecured": re.compile(r"\bunsecured\b", re.I),
